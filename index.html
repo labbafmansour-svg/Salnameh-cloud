@@ -26,18 +26,18 @@ body{-webkit-text-size-adjust:100%;overscroll-behavior:none}
 :root{
   --paper:#f3f6f6; --card:#ffffff; --ink:#14232a; --muted:#5f7178; --line:#d9e2e3;
   --accent:#0d5c6b; --accent-soft:#dcecee; --saffron:#d89400; --saffron-soft:#fbefd2;
-  --weekend:#b0473b; --ruled:#e4ecee; --shadow:0 10px 40px rgba(10,40,50,.18);
+  --weekend:#b0473b; --red:#c62828; --ruled:#e4ecee; --shadow:0 10px 40px rgba(10,40,50,.18);
   --fa:"Vazirmatn",Tahoma,"Geeza Pro",sans-serif;
   --en:"Manrope","Helvetica Neue",Arial,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --paper:#0e1517; --card:#162125; --ink:#e3ecee; --muted:#93a6ab; --line:#26363b;
   --accent:#5fc0cf; --accent-soft:#17343a; --saffron:#f1b53a; --saffron-soft:#3a2e12;
-  --weekend:#ef8a7c; --ruled:#203035; --shadow:0 10px 40px rgba(0,0,0,.5); color-scheme:dark}}
+  --weekend:#ef8a7c; --red:#ff6b6b; --ruled:#203035; --shadow:0 10px 40px rgba(0,0,0,.5); color-scheme:dark}}
 :root[data-theme="dark"]{
   --paper:#0e1517; --card:#162125; --ink:#e3ecee; --muted:#93a6ab; --line:#26363b;
   --accent:#5fc0cf; --accent-soft:#17343a; --saffron:#f1b53a; --saffron-soft:#3a2e12;
-  --weekend:#ef8a7c; --ruled:#203035; --shadow:0 10px 40px rgba(0,0,0,.5); color-scheme:dark}
+  --weekend:#ef8a7c; --red:#ff6b6b; --ruled:#203035; --shadow:0 10px 40px rgba(0,0,0,.5); color-scheme:dark}
 html,body{height:100%}
 body{background:var(--paper);color:var(--ink);font-family:var(--fa);font-size:15px;line-height:1.6;-webkit-tap-highlight-color:transparent}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--paper)}
@@ -108,11 +108,28 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;backgroun
 .sec h3{margin:0 0 8px;font-size:13px;letter-spacing:.04em;color:var(--muted);font-weight:700;display:flex;justify-content:space-between;align-items:center}
 .addrow{display:flex;gap:8px}
 .addrow input{flex:1;min-width:0;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:0 12px;font:inherit}
-ul.tasks{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
-ul.tasks li{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px dashed var(--line)}
-ul.tasks li label{flex:1;min-width:0;display:flex;gap:10px;align-items:center;overflow-wrap:anywhere}
-ul.tasks input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent);flex:none}
-ul.tasks li.done span{text-decoration:line-through;color:var(--muted)}
+ul.tasks{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column}
+ul.tasks li{padding:10px 2px;border-bottom:1px dashed var(--line)}
+.trow{display:flex;align-items:flex-start;gap:10px}
+.tnum{flex:none;min-width:22px;height:26px;display:grid;place-items:center;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+.trow input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent);flex:none;margin:2px 0 0}
+.tbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere}
+.ttext{font-weight:500}
+ul.tasks li.done .ttext{text-decoration:line-through;color:var(--muted)}
+.tres{color:var(--red);font-weight:600;font-size:14px}
+.tres::before{content:"نتیجه: ";font-weight:800}
+.tmeta{display:flex;flex-wrap:wrap;gap:4px 10px}
+.tlink{border:0;background:none;padding:0;font-size:12px;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+.tlink.fu{color:var(--accent)}
+.tacts{display:flex;align-items:center;gap:2px;flex:none}
+.ta{border:1px solid var(--line);background:var(--card);border-radius:9px;font-size:12px;padding:3px 8px;color:var(--muted)}
+.ta.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.x.arm{color:var(--card);background:var(--weekend);font-size:12px;width:auto;padding:0 8px}
+.tpanel{margin:10px 0 2px;padding:10px;border-radius:12px;background:var(--paper);display:flex;flex-direction:column;gap:8px}
+.tbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tbtns input[type=date]{height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:0 10px;font:inherit}
+.tbtns .both{font-size:13px;font-weight:600}
+.resin{width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--red);font:inherit;font-weight:600;padding:8px 10px;resize:vertical}
 .x{border:0;background:none;color:var(--muted);font-size:18px;width:34px;height:34px;border-radius:10px}
 .x:hover{background:var(--paper);color:var(--weekend)}
 .empty{color:var(--muted);font-size:14px;padding:6px 0}
@@ -329,32 +346,75 @@ function render(){
 /* ---------- day drawer ---------- */
 function openDay(j){ui.sel=j;render()}
 function closeDay(){ui.sel=null;document.querySelectorAll('.scrim,.drawer').forEach(e=>e.remove());document.querySelectorAll('.day.sel').forEach(e=>e.classList.remove('sel'))}
+let drawerDay=null, taskOpen=null;
 function renderDrawer(){
-  const prevIn=document.getElementById('taskIn'),keep=prevIn?{v:prevIn.value,f:document.activeElement===prevIn,s:document.querySelector('.dbody')?.scrollTop||0,j:ui.sel}:null;
+  const prevIn=document.getElementById('taskIn');
+  const keep=prevIn&&drawerDay===ui.sel?{v:prevIn.value,f:document.activeElement===prevIn,s:document.querySelector('.dbody')?.scrollTop||0}:{v:'',f:false,s:0};
+  if(drawerDay!==ui.sel)taskOpen=null;
+  drawerDay=ui.sel;
   document.querySelectorAll('.scrim,.drawer').forEach(e=>e.remove());
-  setTimeout(()=>{const ti=document.getElementById('taskIn');if(keep&&ti&&keep.j===ui.sel){ti.value=keep.v;document.querySelector('.dbody').scrollTop=keep.s;if(keep.f)ti.focus()}},0);
   const j=ui.sel,key=iso(j);
-  const tasks=[...S.items.values()].filter(o=>o.kind==='task'&&o.date===key).sort((a,b)=>(a.done-b.done)||(a.at-b.at));
+  const tasks=[...S.items.values()].filter(o=>o.kind==='task'&&o.date===key).sort((a,b)=>(a.at||0)-(b.at||0));
   const ms=meetings().filter(o=>o.date===key).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const sc=document.createElement('div');sc.className='scrim';sc.onclick=closeDay;
   const d=document.createElement('aside');d.className='drawer';d.setAttribute('role','dialog');d.setAttribute('aria-label',faDate(j));
+  const row=(t,i)=>{
+    const op=taskOpen&&taskOpen.id===t.id?taskOpen.p:null;
+    let extra='';
+    if(t.fromDate)extra+=`<button class="tlink" data-go="${t.fromDate}">↩ پیگیری از ${faShort(fromIso(t.fromDate))}</button>`;
+    if(t.fuDate)extra+=`<button class="tlink fu" data-go="${t.fuDate}">↪ پیگیری در ${faShort(fromIso(t.fuDate))}</button>`;
+    let panel='';
+    if(op==='res')panel=`<div class="tpanel"><textarea id="resIn" class="resin" rows="2" placeholder="نتیجه این کار…">${esc(t.result||'')}</textarea>
+      <div class="tbtns"><button class="icon primary" data-rsave="${t.id}">ثبت نتیجه</button><button class="icon" data-close>انصراف</button></div></div>`;
+    if(op==='fu'){const def=t.fuDate||iso(j+1);
+      panel=`<div class="tpanel"><div class="tbtns">
+        <button class="chip" data-quick="1">فردا</button><button class="chip" data-quick="3">۳ روز بعد</button><button class="chip" data-quick="7">یک هفته بعد</button><button class="chip" data-quick="30">یک ماه بعد</button></div>
+        <div class="tbtns"><input type="date" id="fuIn" value="${def}"><span class="both" id="fuLbl">${faDate(fromIso(def))}</span></div>
+        <div class="tbtns"><button class="icon primary" data-fsave="${t.id}">ثبت پیگیری</button>${t.fuId?`<button class="icon danger" data-fdel="${t.id}">لغو پیگیری</button>`:''}<button class="icon" data-close>انصراف</button></div></div>`}
+    return `<li class="${t.done?'done':''}"><div class="trow">
+      <span class="tnum">${fa(i+1)}</span>
+      <input type="checkbox" data-tid="${t.id}" ${t.done?'checked':''} aria-label="انجام شد">
+      <div class="tbody"><span class="ttext">${esc(t.text)}</span>${t.result?`<span class="tres">${esc(t.result)}</span>`:''}${extra?`<div class="tmeta">${extra}</div>`:''}</div>
+      <div class="tacts"><button class="ta${op==='res'?' on':''}" data-res="${t.id}" title="نتیجه">نتیجه</button><button class="ta${op==='fu'?' on':''}" data-fu="${t.id}" title="پیگیری">پیگیری</button><button class="x" data-tdel="${t.id}" aria-label="حذف">✕</button></div>
+    </div>${panel}</li>`};
   d.innerHTML=`<div class="dh"><div class="t"><b>${faDate(j)}</b><span class="en">${enDate(j)}</span></div>
     <button class="icon" id="dPrev" aria-label="روز قبل">›</button><button class="icon" id="dNext" aria-label="روز بعد">‹</button><button class="icon" id="dClose" aria-label="بستن">✕</button></div>
   <div class="dbody">
-    <div class="sec"><h3>کارهای این روز <span>${tasks.length?fa(tasks.filter(t=>t.done).length)+' از '+fa(tasks.length):''}</span></h3>
+    <div class="sec"><h3>کارهای این روز <span>${tasks.length?fa(tasks.filter(t=>t.done).length)+' از '+fa(tasks.length)+' انجام شده':''}</span></h3>
       <form class="addrow" id="taskForm"><input id="taskIn" placeholder="کار جدید… (Enter)" autocomplete="off" enterkeyhint="done"><button class="icon primary" type="submit">افزودن</button></form>
-      ${tasks.length?'<ul class="tasks">'+tasks.map(t=>`<li class="${t.done?'done':''}"><label><input type="checkbox" data-tid="${t.id}" ${t.done?'checked':''}><span>${esc(t.text)}</span></label><button class="x" data-tdel="${t.id}" aria-label="حذف">✕</button></li>`).join('')+'</ul>':'<div class="empty">کاری برای این روز ثبت نشده.</div>'}
+      ${tasks.length?'<ul class="tasks">'+tasks.map(row).join('')+'</ul>':'<div class="empty">کاری برای این روز ثبت نشده.</div>'}
     </div>
     <div class="sec"><h3>جلسه‌ها <button class="icon primary" id="dNewM">+ جلسه در این روز</button></h3>
       ${ms.length?ms.map(mCard).join(''):'<div class="empty">جلسه‌ای ثبت نشده. با «+ جلسه» یک صفحه یادداشت برای این روز باز کنید.</div>'}
     </div>
   </div>`;
   document.body.append(sc,d);
+  const ti=$('#taskIn');ti.value=keep.v;d.querySelector('.dbody').scrollTop=keep.s;if(keep.f)ti.focus();
+  const ri=$('#resIn');if(ri){ri.focus();ri.setSelectionRange(ri.value.length,ri.value.length)}
+  const fi=$('#fuIn');if(fi)fi.onchange=()=>{if(fi.value)$('#fuLbl').textContent=faDate(fromIso(fi.value))};
+  const again=()=>{renderDrawer();refreshMarks()};
   $('#dClose').onclick=closeDay;$('#dPrev').onclick=()=>openDay(j-1);$('#dNext').onclick=()=>openDay(j+1);
   $('#dNewM').onclick=()=>newMeeting(key);
-  $('#taskForm').onsubmit=e=>{e.preventDefault();const v=$('#taskIn').value.trim();if(!v)return;put({kind:'task',id:'t_'+uid(),date:key,text:v,done:false,at:Date.now()});renderDrawer();setTimeout(()=>$('#taskIn').focus(),0);refreshMarks()};
-  d.querySelectorAll('[data-tid]').forEach(c=>c.onchange=()=>{const t=S.items.get(c.dataset.tid);put({...t,done:c.checked});renderDrawer();refreshMarks()});
-  d.querySelectorAll('[data-tdel]').forEach(b=>b.onclick=()=>{del(b.dataset.tdel);renderDrawer();refreshMarks()});
+  $('#taskForm').onsubmit=e=>{e.preventDefault();const v=ti.value.trim();if(!v)return;ti.value='';
+    put({kind:'task',id:'t_'+uid(),date:key,text:v,done:false,at:Date.now()});renderDrawer();const n=$('#taskIn');n.value='';n.focus();refreshMarks()};
+  d.querySelectorAll('[data-tid]').forEach(c=>c.onchange=()=>{const t=S.items.get(c.dataset.tid);put({...t,done:c.checked});
+    if(c.checked&&!t.result)taskOpen={id:t.id,p:'res'};again()});
+  let delArm=null;
+  d.querySelectorAll('[data-tdel]').forEach(b=>b.onclick=()=>{if(delArm!==b.dataset.tdel){delArm=b.dataset.tdel;b.textContent='حذف؟';b.classList.add('arm');return}
+    const t=S.items.get(b.dataset.tdel);if(t&&t.fromId){const o=S.items.get(t.fromId);if(o&&o.fuId===t.id){const c={...o};delete c.fuId;delete c.fuDate;put(c)}}
+    del(b.dataset.tdel);again()});
+  d.querySelectorAll('[data-res]').forEach(b=>b.onclick=()=>{taskOpen=taskOpen&&taskOpen.id===b.dataset.res&&taskOpen.p==='res'?null:{id:b.dataset.res,p:'res'};renderDrawer()});
+  d.querySelectorAll('[data-fu]').forEach(b=>b.onclick=()=>{taskOpen=taskOpen&&taskOpen.id===b.dataset.fu&&taskOpen.p==='fu'?null:{id:b.dataset.fu,p:'fu'};renderDrawer()});
+  d.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{taskOpen=null;renderDrawer()});
+  d.querySelectorAll('[data-rsave]').forEach(b=>b.onclick=()=>{const t=S.items.get(b.dataset.rsave);put({...t,result:$('#resIn').value.trim()});taskOpen=null;again()});
+  d.querySelectorAll('[data-quick]').forEach(b=>b.onclick=()=>{const v=iso(j+ +b.dataset.quick);fi.value=v;$('#fuLbl').textContent=faDate(fromIso(v))});
+  d.querySelectorAll('[data-fsave]').forEach(b=>b.onclick=()=>{
+    const t=S.items.get(b.dataset.fsave),v=fi.value;if(!v)return;
+    let f=t.fuId&&S.items.get(t.fuId);
+    if(f)f={...f,date:v};else f={kind:'task',id:'t_'+uid(),date:v,text:t.text,done:false,at:Date.now(),fromId:t.id,fromDate:t.date};
+    put(f);put({...t,fuId:f.id,fuDate:v});taskOpen=null;toast('به کارهای '+faShort(fromIso(v))+' اضافه شد');again()});
+  d.querySelectorAll('[data-fdel]').forEach(b=>b.onclick=()=>{const t=S.items.get(b.dataset.fdel);if(t.fuId)del(t.fuId);const c={...t};delete c.fuId;delete c.fuDate;put(c);taskOpen=null;again()});
+  d.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>openDay(fromIso(b.dataset.go)));
   d.querySelectorAll('[data-mid]').forEach(b=>b.onclick=()=>openMeeting(b.dataset.mid));
 }
 function refreshMarks(){if(ui.view!=='year')return;const sel=ui.sel;const sy=$('#main').scrollTop;ui.sel=null;render();ui.sel=sel;document.querySelector(`.day[data-j="${sel}"]`)?.classList.add('sel')}
