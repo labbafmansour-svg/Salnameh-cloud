@@ -1,5 +1,5 @@
 // Offline cache for Salnameh. Bump VERSION after changing any file.
-const VERSION = 'salnameh-v2';
+const VERSION = 'salnameh-v3';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));

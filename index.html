@@ -169,6 +169,36 @@ ul.tasks li.done .ttext{text-decoration:line-through;color:var(--muted)}
 canvas.ink{display:block;width:100%;border:1px solid var(--line);border-radius:14px;background:var(--card);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .addpage{display:block;margin:0 auto 40px}
 .danger{color:var(--weekend)}
+.tabs{flex-wrap:wrap;border-radius:14px}
+.tabs button{border-radius:11px}
+.pane{max-width:900px;margin:14px auto 40px;display:flex;flex-direction:column;gap:12px}
+.pane h4{margin:10px 0 0;font-size:14px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.typed.small{min-height:28vh;margin:0}
+.pane .typed{margin:0}
+.recrow{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.recbtn{border:0;background:var(--red);color:#fff;font-weight:800;font-size:17px;padding:12px 22px;border-radius:999px}
+.recbtn.on{background:var(--ink);color:var(--paper)}
+.rectime{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;min-width:80px}
+.recrow.live .rectime{color:var(--red)}
+#lvl{width:160px;height:32px;max-width:100%}
+.hint{margin:0;font-size:13px;color:var(--muted)}
+.stat{font-size:13px;color:var(--muted)}
+.stat.err{color:var(--red)}
+.seg-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);margin-bottom:6px}
+.seg-row audio{height:34px;max-width:100%;flex:1 1 220px}
+.seg-row .badge{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--saffron-soft)}
+.seg-row .badge.ok{background:var(--accent-soft);color:var(--accent)}
+.act{display:grid;grid-template-columns:28px minmax(0,1fr) 140px 150px auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+.act input{height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:0 10px;font:inherit;min-width:0;width:100%;box-sizing:border-box}
+.act .jl{grid-column:3 / 5;font-size:11px;color:var(--muted);margin-top:-6px}
+@media (max-width:700px){.act{grid-template-columns:28px minmax(0,1fr) auto}.act .ow,.act .du{grid-column:2 / 4}.act .jl{grid-column:2 / 4}}
+.modal{position:fixed;inset:0;z-index:70;background:rgba(5,20,25,.45);display:grid;place-items:center;padding:16px}
+.modal .box{background:var(--card);border-radius:18px;box-shadow:var(--shadow);width:min(560px,100%);max-height:90vh;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box}
+.modal h3{margin:0;font-size:19px}
+.modal label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.modal input{height:42px;border-radius:10px;border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:0 10px;font:inherit;direction:ltr;text-align:left}
+.modal .note{font-size:12px;color:var(--muted);margin:0}
+
 
 /* search */
 .sres{padding-block:14px 40px;max-width:980px}
@@ -203,6 +233,7 @@ canvas.ink{display:block;width:100%;border:1px solid var(--line);border-radius:1
     <button class="icon primary" id="newMeet">+ جلسه</button>
     <div class="rel"><button class="icon" id="menuBtn" aria-label="بیشتر">⋯</button>
       <div class="menu" id="menu" hidden>
+        <button id="aiSetM">تنظیمات هوش مصنوعی (ضبط و صورت جلسه)</button>
         <button id="exp">گرفتن نسخه پشتیبان (JSON)</button>
         <label for="impFile">بازگردانی از فایل پشتیبان</label>
         <input id="impFile" type="file" accept="application/json,.json" hidden>
@@ -255,7 +286,7 @@ const lsGet=(k)=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e
 const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}};
 const S={items:new Map(),ink:{},mode:'idb',ready:false};
 let IDB=null;
-function idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open('salnameh',1);r.onupgradeneeded=()=>{r.result.createObjectStore('items',{keyPath:'id'})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open('salnameh',2);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('items'))d.createObjectStore('items',{keyPath:'id'});if(!d.objectStoreNames.contains('audio')){const a=d.createObjectStore('audio',{keyPath:'id'});a.createIndex('mid','mid')}};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 function tx(mode,fn){return new Promise((res,rej)=>{const t=IDB.transaction('items',mode);const st=t.objectStore('items');const out=fn(st);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:undefined);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})}
 async function put(o){
   if(o.kind==='ink'){(S.ink[o.mid]=(S.ink[o.mid]||[]).filter(x=>x.id!==o.id)).push(o)}else S.items.set(o.id,o);
@@ -361,7 +392,8 @@ function renderDrawer(){
   const row=(t,i)=>{
     const op=taskOpen&&taskOpen.id===t.id?taskOpen.p:null;
     let extra='';
-    if(t.fromDate)extra+=`<button class="tlink" data-go="${t.fromDate}">↩ پیگیری از ${faShort(fromIso(t.fromDate))}</button>`;
+    if(t.fromMeeting)extra+=`<button class="tlink" data-om="${t.fromMeeting}">↩ از جلسه «${esc((S.items.get(t.fromMeeting)||{}).title||t.fromMeetingTitle||'')}» ${faShort(fromIso(t.fromDate))}</button>`;
+    else if(t.fromDate)extra+=`<button class="tlink" data-go="${t.fromDate}">↩ پیگیری از ${faShort(fromIso(t.fromDate))}</button>`;
     if(t.fuDate)extra+=`<button class="tlink fu" data-go="${t.fuDate}">↪ پیگیری در ${faShort(fromIso(t.fuDate))}</button>`;
     let panel='';
     if(op==='res')panel=`<div class="tpanel"><textarea id="resIn" class="resin" rows="2" placeholder="نتیجه این کار…">${esc(t.result||'')}</textarea>
@@ -415,6 +447,7 @@ function renderDrawer(){
     put(f);put({...t,fuId:f.id,fuDate:v});taskOpen=null;toast('به کارهای '+faShort(fromIso(v))+' اضافه شد');again()});
   d.querySelectorAll('[data-fdel]').forEach(b=>b.onclick=()=>{const t=S.items.get(b.dataset.fdel);if(t.fuId)del(t.fuId);const c={...t};delete c.fuId;delete c.fuDate;put(c);taskOpen=null;again()});
   d.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>openDay(fromIso(b.dataset.go)));
+  d.querySelectorAll('[data-om]').forEach(b=>b.onclick=()=>{if(S.items.get(b.dataset.om))openMeeting(b.dataset.om);else toast('آن جلسه حذف شده است')});
   d.querySelectorAll('[data-mid]').forEach(b=>b.onclick=()=>openMeeting(b.dataset.mid));
 }
 function refreshMarks(){if(ui.view!=='year')return;const sel=ui.sel;const sy=$('#main').scrollTop;ui.sel=null;render();ui.sel=sel;document.querySelector(`.day[data-j="${sel}"]`)?.classList.add('sel')}
@@ -434,7 +467,7 @@ function renderSearch(){
   let res=all.filter(m=>{
     if(ui.person&&!(m.people||[]).includes(ui.person))return false;
     if(!q)return true;
-    const t=norm(m.title).includes(q), p=(m.people||[]).some(x=>norm(x).includes(q)), b=norm(m.text).includes(q);
+    const t=norm(m.title).includes(q), p=(m.people||[]).some(x=>norm(x).includes(q)), b=[m.text,m.agenda,m.minutes,m.transcript].some(x=>norm(x).includes(q));
     return ui.filter==='title'?t:ui.filter==='people'?p:(t||p||b);
   }).sort((a,b)=>(b.date+(b.time||'')).localeCompare(a.date+(a.time||'')));
   const fb=(k,l)=>`<button class="chip${ui.filter===k?' on':''}" data-f="${k}">${l}</button>`;
@@ -471,7 +504,9 @@ async function openMeeting(id,fresh){
       <input id="pIn" list="pList" placeholder="نام + Enter" autocomplete="off" enterkeyhint="done"><datalist id="pList">${allPeople.map(p=>`<option value="${esc(p)}">`).join('')}</datalist></div>
   </div>
   <div class="wrap modebar">
-    <div class="seg" role="group" aria-label="روش نوشتن"><button id="mdT" aria-pressed="true">⌨ تایپ</button><button id="mdP" aria-pressed="false">✎ قلم</button></div>
+    <div class="seg tabs" role="tablist" aria-label="بخش‌های جلسه">
+      <button data-tab="agenda">دستور جلسه</button><button data-tab="notes">⌨ یادداشت</button><button data-tab="pen">✎ قلم</button><button data-tab="rec">● ضبط و متن</button><button data-tab="min">صورت جلسه</button>
+    </div>
     <div class="tools" id="penTools" hidden>
       <button class="sw" data-c="ink" aria-label="مشکی" style="background:var(--ink)"></button>
       <button class="sw" data-c="#1f5fbf" aria-label="آبی" style="background:#1f5fbf"></button>
@@ -487,8 +522,38 @@ async function openMeeting(id,fresh){
     </div>
   </div>
   <div class="notearea" id="noteArea">
-    <div class="wrap" id="typedBox"><textarea class="typed" id="mText" placeholder="یادداشت‌های جلسه… تصمیم‌ها، اقدام‌ها، مسئول و مهلت">${esc(m.text)}</textarea></div>
-    <div class="wrap" id="inkBox" hidden><div class="inkwrap"><canvas class="ink" id="cv"></canvas></div><button class="icon addpage" id="addPage">+ صفحه جدید</button></div>
+    <div class="wrap" data-panel="agenda" hidden><textarea class="typed" id="mAgenda" placeholder="دستور جلسه را بنویسید — هر مورد در یک خط&#10;مثلاً:&#10;بررسی پیشرفت پروژه&#10;تأیید بودجه&#10;زمان‌بندی مرحله بعد">${esc(m.agenda||'')}</textarea></div>
+    <div class="wrap" data-panel="notes"><textarea class="typed" id="mText" placeholder="یادداشت‌های جلسه… تصمیم‌ها، اقدام‌ها، مسئول و مهلت">${esc(m.text)}</textarea></div>
+    <div class="wrap" data-panel="pen" id="inkBox" hidden><div class="inkwrap"><canvas class="ink" id="cv"></canvas></div><button class="icon addpage" id="addPage">+ صفحه جدید</button></div>
+    <div class="wrap" data-panel="rec" hidden><div class="pane">
+      <div class="recrow">
+        <button class="recbtn" id="recBtn">● شروع ضبط</button>
+        <button class="icon" id="recPause" hidden>❚❚ مکث</button>
+        <span class="rectime" id="recTime">۰۰:۰۰</span>
+        <canvas id="lvl" width="160" height="32" aria-hidden="true"></canvas>
+        <button class="icon" id="aiSet1" style="margin-inline-start:auto">⚙ تنظیمات هوش مصنوعی</button>
+      </div>
+      <p class="hint">در طول ضبط اپ را باز و صفحه را روشن نگه دارید؛ iPad در پس‌زمینه ضبط را قطع می‌کند. ضبط هر ۱۰ دقیقه یک بخش جدا ذخیره می‌شود تا چیزی از دست نرود.</p>
+      <div id="segList"></div>
+      <div class="tbtns"><button class="icon primary" id="sttBtn">تبدیل صدا به متن فارسی</button><span class="stat" id="sttStat"></span></div>
+      <h4>متن گفتگوی جلسه</h4>
+      <textarea class="typed small" id="mTr" placeholder="متن پیاده‌شده جلسه اینجا قرار می‌گیرد و قابل ویرایش است. بدون کلید API هم می‌توانید با میکروفون کیبورد مستقیم دیکته کنید.">${esc(m.transcript||'')}</textarea>
+    </div></div>
+    <div class="wrap" data-panel="min" hidden><div class="pane">
+      <div class="tbtns">
+        <button class="icon primary" id="aiMin">✦ تهیه صورت جلسه</button>
+        <button class="icon" id="cpPrompt">کپی برای Claude</button>
+        <button class="icon" id="shareMin">ارسال / کپی صورت جلسه</button>
+        <button class="icon" id="aiSet2" style="margin-inline-start:auto">⚙</button>
+      </div>
+      <p class="hint" id="minHint">صورت جلسه از دستور جلسه، یادداشت‌ها، دست‌نویس‌ها و متن گفتگو ساخته می‌شود. بدون کلید API: «کپی برای Claude» را بزنید، در Claude بچسبانید و پاسخ را در کادر زیر بگذارید.</p>
+      <div id="pasteBox" hidden><textarea class="typed small" id="pasteIn" placeholder="پاسخ Claude را اینجا بچسبانید"></textarea><div class="tbtns"><button class="icon primary" id="pasteOk">ثبت پاسخ</button><button class="icon" id="pasteNo">انصراف</button></div></div>
+      <span class="stat" id="minStat"></span>
+      <h4>صورت جلسه</h4>
+      <textarea class="typed" id="mMin" placeholder="صورت جلسه اینجا ساخته می‌شود و قابل ویرایش است.">${esc(m.minutes||'')}</textarea>
+      <h4>موارد پیگیری <button class="icon" id="actAdd">+ مورد</button> <button class="icon primary" id="actAll">همه به کارها</button></h4>
+      <div id="actList"></div>
+    </div></div>
   </div>`;
   document.body.appendChild(sh);
   const st={m:{...m},strokes:await loadInk(m.id),color:'ink',w:4,eraser:false,finger:false,saveT:null,inkT:null};
@@ -508,9 +573,10 @@ async function openMeeting(id,fresh){
   $('#mTime').onchange=()=>{st.m.time=$('#mTime').value;commit()};
   let confirmDel=false;
   $('#mDel').onclick=async()=>{if(!confirmDel){confirmDel=true;$('#mDel').textContent='مطمئنید؟ دوباره بزنید';setTimeout(()=>{confirmDel=false;const b=$('#mDel');if(b)b.textContent='حذف'},3000);return}
-    clearTimeout(st.saveT);clearTimeout(st.inkT);for(const x of (S.ink[m.id]||[]).slice())await del(x.id,m.id);await del(m.id);close(true);toast('جلسه حذف شد')};
+    clearTimeout(st.saveT);clearTimeout(st.inkT);for(const x of (S.ink[m.id]||[]).slice())await del(x.id,m.id);for(const a of await audioList(m.id))await audioDel(a.id);await del(m.id);close(true);toast('جلسه حذف شد')};
   const close=(deleted)=>{
-    if(!deleted){clearTimeout(st.saveT);if(!st.m.title&&!st.m.text&&!st.strokes.length&&!st.m.people.length&&fresh){del(m.id)}else{st.m.upd=Date.now();put({...st.m})}
+    if(st.rec&&st.rec.active)st.rec.stop();
+    if(!deleted){clearTimeout(st.saveT);if(!st.m.title&&!st.m.text&&!st.m.agenda&&!st.m.transcript&&!st.strokes.length&&!st.m.people.length&&!st.segs?.length&&fresh){del(m.id)}else{st.m.upd=Date.now();put({...st.m})}
       if(st.inkDirty){clearTimeout(st.inkT);flushInk()}}
     window.removeEventListener('resize',sizeCanvas);sh.remove();ED=null;
     if(ui.view==='search')renderSearch();else{ui.sel=fromIso(st.m.date);render()}
@@ -519,8 +585,8 @@ async function openMeeting(id,fresh){
   if(fresh)setTimeout(()=>$('#mTitle').focus(),50);
 
   /* mode */
-  const setMode=(p)=>{$('#mdT').setAttribute('aria-pressed',!p);$('#mdP').setAttribute('aria-pressed',p);$('#typedBox').hidden=p;$('#inkBox').hidden=!p;$('#penTools').hidden=!p;if(p)sizeCanvas()};
-  $('#mdT').onclick=()=>setMode(false);$('#mdP').onclick=()=>setMode(true);
+  const setTab=(t)=>{st.tab=t;sh.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tab===t));sh.querySelectorAll('[data-panel]').forEach(p=>p.hidden=p.dataset.panel!==t);$('#penTools').hidden=t!=='pen';if(t==='pen')sizeCanvas();if(t==='rec')st.renderSegs();if(t==='min')st.renderActs()};
+  sh.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 
   /* pen */
   const cv=$('#cv'),ctx=cv.getContext('2d'),LW=1000,PH=1300;let scale=1;
@@ -564,7 +630,213 @@ async function openMeeting(id,fresh){
   });
   const up=e=>{if(pan&&e.pointerId===pan.id){pan=null;return}if(!cur||e.pointerId!==cur.id)return;if(!cur.erase){st.strokes.push(cur.s);if(cur.s.c==='#d89400')redraw();inkChanged()}cur=null};
   cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
-  if(st.strokes.length&&!st.m.text)setMode(true);
+  meetingExtras(st,sh,commit,setTab,()=>st.strokes);
+  setTab(st.m.minutes?'min':(st.strokes.length&&!st.m.text)?'pen':'notes');
+}
+
+/* ---------- audio store ---------- */
+function audioPut(o){return tx2('readwrite',st=>st.put(o))}
+function audioDel(id){return tx2('readwrite',st=>st.delete(id)).catch(()=>{})}
+function audioList(mid){return new Promise((res)=>{try{const r=IDB.transaction('audio').objectStore('audio').index('mid').getAll(mid);r.onsuccess=()=>res((r.result||[]).sort((a,b)=>a.at-b.at));r.onerror=()=>res([])}catch(e){res([])}})}
+function tx2(mode,fn){return new Promise((res,rej)=>{const t=IDB.transaction('audio',mode);fn(t.objectStore('audio'));t.oncomplete=()=>res();t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})}
+
+/* ---------- AI settings ---------- */
+const AI_KEY='salnameh.ai.v1';
+const aiCfg=()=>Object.assign({oa:'',an:'',stt:'gpt-4o-transcribe',llm:'claude-sonnet-5-5'},lsGet(AI_KEY)||{});
+function openAISettings(){
+  const c=aiCfg();const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="box" role="dialog" aria-label="تنظیمات هوش مصنوعی"><h3>تنظیمات هوش مصنوعی</h3>
+  <p class="note">برای تبدیل صدای فارسی به متن، کلید OpenAI و برای نوشتن صورت جلسه، کلید Anthropic (Claude) لازم است. کلیدها فقط روی همین iPad ذخیره می‌شوند و مستقیم به همان سرویس فرستاده می‌شوند.</p>
+  <label>کلید OpenAI — از platform.openai.com/api-keys<input id="kOa" type="password" autocomplete="off" value="${esc(c.oa)}" placeholder="sk-..."></label>
+  <label>مدل تبدیل صدا به متن<input id="kStt" value="${esc(c.stt)}"></label>
+  <label>کلید Anthropic — از console.anthropic.com<input id="kAn" type="password" autocomplete="off" value="${esc(c.an)}" placeholder="sk-ant-..."></label>
+  <label>مدل Claude برای صورت جلسه<input id="kLlm" value="${esc(c.llm)}"></label>
+  <p class="note">هزینه هر جلسه بر اساس مدت صدا و طول متن از حساب API شما کم می‌شود.</p>
+  <div class="tbtns"><button class="icon primary" id="kSave">ذخیره</button><button class="icon" id="kNo">بستن</button></div></div>`;
+  document.body.appendChild(m);
+  m.querySelector('#kNo').onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()};
+  m.querySelector('#kSave').onclick=()=>{lsSet(AI_KEY,{oa:m.querySelector('#kOa').value.trim(),an:m.querySelector('#kAn').value.trim(),stt:m.querySelector('#kStt').value.trim()||'gpt-4o-transcribe',llm:m.querySelector('#kLlm').value.trim()||'claude-sonnet-5-5'});m.remove();toast('تنظیمات ذخیره شد')};
+}
+const apiErr=async(r,who)=>{let t='';try{const j=await r.json();t=(j.error&&(j.error.message||j.error.type))||''}catch(e){}
+  if(r.status===401)return 'کلید '+who+' نادرست است — در تنظیمات بررسی کنید';if(r.status===429)return 'محدودیت یا اعتبار حساب '+who+' — کمی بعد دوباره امتحان کنید';return who+' خطا داد ('+r.status+') '+t};
+
+async function transcribeBlob(blob,hint){
+  const c=aiCfg();if(!c.oa)throw new Error('ابتدا کلید OpenAI را در تنظیمات وارد کنید');
+  const ext=(blob.type||'').includes('webm')?'webm':(blob.type||'').includes('ogg')?'ogg':'mp4';
+  const go=async(model)=>{const fd=new FormData();fd.append('file',blob,'meeting.'+ext);fd.append('model',model);fd.append('language','fa');if(hint)fd.append('prompt',hint);fd.append('response_format','json');
+    return fetch('https://api.openai.com/v1/audio/transcriptions',{method:'POST',headers:{Authorization:'Bearer '+c.oa},body:fd})};
+  let r;try{r=await go(c.stt)}catch(e){throw new Error('اتصال اینترنت برقرار نیست')}
+  if(!r.ok&&(r.status===400||r.status===404)&&c.stt!=='whisper-1'){r=await go('whisper-1')}
+  if(!r.ok)throw new Error(await apiErr(r,'OpenAI'));
+  const j=await r.json();return (j.text||'').trim();
+}
+function inkImages(strokes,pages){
+  if(!strokes.length)return [];const LW=1000,PH=1300,out=[];
+  for(let p=0;p<pages&&out.length<6;p++){const ss=strokes.filter(s=>{for(let i=1;i<s.p.length;i+=3)if(s.p[i]>=p*PH&&s.p[i]<(p+1)*PH)return true;return false});if(!ss.length)continue;
+    const c=document.createElement('canvas');c.width=LW;c.height=PH;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,LW,PH);x.translate(0,-p*PH);x.lineCap='round';x.lineJoin='round';
+    ss.forEach(s=>{x.strokeStyle=s.c==='ink'?'#14232a':s.c;x.globalAlpha=s.c==='#d89400'?.35:1;for(let i=3;i<s.p.length;i+=3){x.lineWidth=s.w*(.4+s.p[i+2]/100*.9);x.beginPath();x.moveTo(s.p[i-3],s.p[i-2]);x.lineTo(s.p[i],s.p[i+1]);x.stroke()}});
+    out.push(c.toDataURL('image/jpeg',.75).split(',')[1])}
+  return out;
+}
+function minutesPrompt(m,withImgs){
+  const j=fromIso(m.date);
+  return `صورت جلسه این جلسه را به فارسی رسمی و روان بنویس.
+اطلاعات جلسه:
+- موضوع: ${m.title||'(بدون عنوان)'}
+- تاریخ: ${faDate(j)} برابر با ${enDate(j)} (تاریخ میلادی ISO: ${m.date})
+- ساعت: ${m.time||'-'}
+- حاضرین: ${(m.people||[]).join('، ')||'-'}
+
+دستور جلسه (از طرف کاربر):
+${m.agenda||'(وارد نشده — از محتوای جلسه استخراج کن)'}
+
+یادداشت‌های تایپی:
+${m.text||'-'}
+
+متن گفتگوی پیاده‌شده از صدا (ممکن است خطای تایپی داشته باشد):
+${m.transcript||'-'}
+${withImgs?'\nتصاویر پیوست، یادداشت‌های دست‌نویس همین جلسه هستند؛ محتوای آن‌ها را هم لحاظ کن.\n':''}
+فقط و فقط یک شیء JSON معتبر برگردان، بدون هیچ متن دیگر و بدون \`\`\`، با این ساختار:
+{"agenda":["مورد دستور جلسه"],"summary":"خلاصه کوتاه جلسه در ۲ تا ۴ جمله","items":[{"topic":"عنوان بند","discussion":["نکته مطرح‌شده"],"decisions":["مصوبه"]}],"actions":[{"task":"اقدامی که باید پیگیری شود","owner":"نام مسئول یا خالی","due":"YYYY-MM-DD میلادی یا خالی"}]}
+قواعد: فقط چیزهایی را بنویس که در جلسه گفته یا نوشته شده؛ چیزی از خودت اضافه نکن. نام افراد را مطابق فهرست حاضرین بنویس. اگر مهلتی به تاریخ شمسی یا نسبی (مثل «هفته بعد») گفته شد، آن را نسبت به تاریخ جلسه به تاریخ میلادی ISO تبدیل کن. بندها را به ترتیب دستور جلسه مرتب کن.`;
+}
+function parseMinutes(txt){const a=txt.indexOf('{'),b=txt.lastIndexOf('}');if(a<0||b<a)throw new Error('پاسخ قالب درستی نداشت');return JSON.parse(txt.slice(a,b+1))}
+function minutesText(m,ai){
+  const j=fromIso(m.date),L=[];const n=(i)=>fa(i+1)+'. ';
+  L.push('صورت جلسه: '+(m.title||''));L.push('تاریخ: '+faDate(j)+'  |  '+enDate(j)+(m.time?'  |  ساعت '+fa(m.time):''));
+  if((m.people||[]).length)L.push('حاضرین: '+m.people.join('، '));L.push('');
+  if(ai.agenda&&ai.agenda.length){L.push('دستور جلسه:');ai.agenda.forEach((x,i)=>L.push(n(i)+x));L.push('')}
+  if(ai.summary){L.push('خلاصه:');L.push(ai.summary);L.push('')}
+  (ai.items||[]).forEach((it,i)=>{L.push(n(i)+it.topic);(it.discussion||[]).forEach(x=>L.push('   • '+x));(it.decisions||[]).forEach(x=>L.push('   ✓ مصوبه: '+x));L.push('')});
+  if((ai.actions||[]).length){L.push('موارد پیگیری:');ai.actions.forEach((a,i)=>L.push(n(i)+a.task+(a.owner?' — مسئول: '+a.owner:'')+(a.due&&/^\d{4}-\d\d-\d\d$/.test(a.due)?' — مهلت: '+faShort(fromIso(a.due)):'')))}
+  return L.join('\n').trim();
+}
+async function callClaude(m,strokes){
+  const c=aiCfg();if(!c.an)throw new Error('ابتدا کلید Anthropic را در تنظیمات وارد کنید — یا از «کپی برای Claude» استفاده کنید');
+  const imgs=inkImages(strokes,m.pages||1);
+  const content=imgs.map(d=>({type:'image',source:{type:'base64',media_type:'image/jpeg',data:d}}));content.push({type:'text',text:minutesPrompt(m,imgs.length>0)});
+  let r;try{r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':c.an,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:c.llm,max_tokens:8000,system:'تو منشی دقیق و حرفه‌ای جلسات کاری هستی و صورت جلسه را به فارسی می‌نویسی.',messages:[{role:'user',content}]})})}catch(e){throw new Error('اتصال اینترنت برقرار نیست')}
+  if(!r.ok)throw new Error(await apiErr(r,'Anthropic'));
+  const j=await r.json();return (j.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('');
+}
+const fmtDur=(ms)=>{const t=Math.floor(ms/1000);return fa(String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0'))};
+
+/* ---------- recording, transcript, minutes, follow-ups inside a meeting ---------- */
+function meetingExtras(st,sh,commit,setTab,getStrokes){
+  const q=(s)=>sh.querySelector(s);
+  ['#aiSet1','#aiSet2'].forEach(x=>q(x).onclick=openAISettings);
+  q('#mAgenda').oninput=()=>{st.m.agenda=q('#mAgenda').value;commit()};
+  q('#mTr').oninput=()=>{st.m.transcript=q('#mTr').value;commit()};
+  q('#mMin').oninput=()=>{st.m.minutes=q('#mMin').value;commit()};
+  st.segs=[];const urls=[];
+  async function renderSegs(){st.segs=await audioList(st.m.id);urls.forEach(u=>URL.revokeObjectURL(u));urls.length=0;
+    const box=q('#segList');if(!box)return;
+    box.innerHTML=st.segs.length?st.segs.map((a,i)=>{const u=URL.createObjectURL(a.blob);urls.push(u);
+      return `<div class="seg-row"><b>بخش ${fa(i+1)}</b><span class="stat">${fmtDur(a.dur||0)}</span><audio controls preload="none" src="${u}"></audio><span class="badge${a.tr!=null?' ok':''}">${a.tr!=null?'✓ به متن تبدیل شد':'در انتظار تبدیل'}</span><button class="x" data-adel="${a.id}" aria-label="حذف صدا">✕</button></div>`}).join(''):'<div class="hint">هنوز صدایی ضبط نشده.</div>';
+    box.querySelectorAll('[data-adel]').forEach(b=>b.onclick=async()=>{if(b.dataset.arm){await audioDel(b.dataset.adel);renderSegs()}else{b.dataset.arm=1;b.textContent='حذف؟';b.classList.add('arm')}});
+  }
+  st.renderSegs=renderSegs;
+
+  /* recorder */
+  const R={active:false,paused:false,stream:null,r:null,doneMs:0,segAcc:0,runStart:0,lastSegMs:0,tick:null,wake:null,ac:null,an:null,raf:0,rotating:false,onDone:null};
+  st.rec=R;
+  const btn=q('#recBtn'),pz=q('#recPause'),tm=q('#recTime'),lvl=q('#lvl'),lc=lvl.getContext('2d');
+  const mime=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t))||'';
+  const segMs=()=>R.segAcc+(R.paused?0:Date.now()-R.runStart);
+  function startSeg(){const r=new MediaRecorder(R.stream,mime?{mimeType:mime}:undefined);const chunks=[];const t0=Date.now();
+    r.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+    r.onstop=async()=>{const blob=new Blob(chunks,{type:r.mimeType||mime||'audio/mp4'});
+      if(blob.size>1000){try{await audioPut({id:'a_'+st.m.id+'_'+t0,mid:st.m.id,at:t0,dur:R.lastSegMs,blob,tr:null})}catch(e){toast('صدا ذخیره نشد — فضای iPad را بررسی کنید')}}
+      if(R.active&&R.rotating){R.rotating=false;startSeg()}else if(!R.active&&R.onDone){const f=R.onDone;R.onDone=null;f()}
+      st.renderSegs()};
+    r.start(1000);R.r=r;R.segAcc=0;R.runStart=Date.now()}
+  function drawLvl(){if(!R.an)return;const a=new Uint8Array(R.an.fftSize);R.an.getByteTimeDomainData(a);let m=0;for(const v of a)m=Math.max(m,Math.abs(v-128));
+    const css=getComputedStyle(document.documentElement);lc.clearRect(0,0,160,32);lc.fillStyle=css.getPropertyValue('--line');lc.fillRect(0,13,160,6);lc.fillStyle=css.getPropertyValue('--red');lc.fillRect(0,13,R.paused?0:Math.min(160,m/128*160*1.8),6);R.raf=requestAnimationFrame(drawLvl)}
+  async function start(){
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder){toast('ضبط صدا در این دستگاه پشتیبانی نمی‌شود');return}
+    try{R.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}catch(e){toast('اجازه میکروفون داده نشد — در Settings › Apps › Safari › Microphone بررسی کنید');return}
+    R.active=true;R.paused=false;R.doneMs=0;startSeg();
+    try{R.ac=new (window.AudioContext||window.webkitAudioContext)();const src=R.ac.createMediaStreamSource(R.stream);R.an=R.ac.createAnalyser();R.an.fftSize=512;src.connect(R.an);drawLvl()}catch(e){}
+    try{R.wake=await navigator.wakeLock.request('screen')}catch(e){}
+    R.tick=setInterval(()=>{tm.textContent=fmtDur(R.doneMs+segMs());
+      if(!R.paused&&!R.rotating&&segMs()>10*60*1000){R.lastSegMs=segMs();R.doneMs+=R.lastSegMs;R.rotating=true;R.r.stop()}},500);
+    btn.textContent='■ پایان ضبط';btn.classList.add('on');pz.hidden=false;q('.recrow').classList.add('live');
+  }
+  R.stop=()=>{if(!R.active)return;R.lastSegMs=segMs();R.active=false;clearInterval(R.tick);cancelAnimationFrame(R.raf);
+    try{if(R.r.state!=='inactive')R.r.stop()}catch(e){}
+    try{R.stream.getTracks().forEach(t=>t.stop())}catch(e){}try{R.ac&&R.ac.close()}catch(e){}R.an=null;try{R.wake&&R.wake.release()}catch(e){}
+    R.paused=false;if(btn.isConnected){btn.textContent='● شروع ضبط';btn.classList.remove('on');pz.hidden=true;pz.textContent='❚❚ مکث';q('.recrow').classList.remove('live')}};
+  btn.onclick=()=>{if(R.active){R.onDone=()=>{if(aiCfg().oa)doSTT()};R.stop()}else start()};
+  pz.onclick=()=>{if(!R.active)return;
+    if(!R.paused){try{R.r.pause()}catch(e){}R.segAcc+=Date.now()-R.runStart;R.paused=true;pz.textContent='▶ ادامه'}
+    else{try{R.r.resume()}catch(e){}R.runStart=Date.now();R.paused=false;pz.textContent='❚❚ مکث'}};
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&R.active)toast('ضبط در پس‌زمینه ممکن است قطع شود')});
+
+  /* transcription */
+  let sttBusy=false;
+  async function doSTT(){if(sttBusy)return;const stat=q('#sttStat');if(!stat)return;
+    const todo=(await audioList(st.m.id)).filter(a=>a.tr==null);
+    if(!todo.length){stat.textContent='همه بخش‌ها قبلاً به متن تبدیل شده‌اند';stat.className='stat';return}
+    if(!aiCfg().oa){stat.textContent='برای تبدیل صدا به متن، کلید OpenAI را در تنظیمات وارد کنید';stat.className='stat err';return}
+    sttBusy=true;const hint=[st.m.title,(st.m.people||[]).join('، ')].filter(Boolean).join(' — ');
+    try{for(let i=0;i<todo.length;i++){stat.className='stat';stat.textContent='در حال تبدیل بخش '+fa(i+1)+' از '+fa(todo.length)+'…';
+        const t=await transcribeBlob(todo[i].blob,hint);todo[i].tr=t;await audioPut(todo[i]);
+        st.m.transcript=((st.m.transcript||'').trim()+'\n\n'+t).trim();const ta=q('#mTr');if(ta)ta.value=st.m.transcript;commit()}
+      stat.textContent='✓ متن آماده شد — حالا می‌توانید در تب «صورت جلسه» آن را بسازید';}
+    catch(e){stat.textContent=e.message;stat.className='stat err'}
+    sttBusy=false;renderSegs()}
+  q('#sttBtn').onclick=doSTT;
+
+  /* minutes */
+  const mstat=q('#minStat');
+  const apply=(ai)=>{st.m.ai=ai;st.m.minutes=minutesText(st.m,ai);q('#mMin').value=st.m.minutes;
+    const old=st.m.actions||[];st.m.actions=(ai.actions||[]).map(a=>({id:uid(),task:a.task||'',owner:a.owner||'',due:/^\d{4}-\d\d-\d\d$/.test(a.due||'')?a.due:''}));
+    old.filter(a=>a.taskId).forEach(a=>st.m.actions.push(a)); // keep ones already sent to tasks
+    if(!st.m.agenda&&ai.agenda&&ai.agenda.length){st.m.agenda=ai.agenda.join('\n');q('#mAgenda').value=st.m.agenda}
+    commit();renderActs();mstat.className='stat';mstat.textContent='✓ صورت جلسه آماده شد — متن را بازبینی و موارد پیگیری را به کارها اضافه کنید'};
+  q('#aiMin').onclick=async()=>{
+    if(!st.m.transcript&&!st.m.text&&!st.m.agenda&&!getStrokes().length){mstat.className='stat err';mstat.textContent='هنوز محتوایی برای این جلسه نیست — ضبط کنید، یادداشت بنویسید یا دستور جلسه را وارد کنید';return}
+    if(st.m.minutes&&!q('#aiMin').dataset.arm){q('#aiMin').dataset.arm=1;q('#aiMin').textContent='صورت جلسه فعلی جایگزین شود؟ دوباره بزنید';setTimeout(()=>{const b=q('#aiMin');if(b){delete b.dataset.arm;b.textContent='✦ تهیه صورت جلسه'}},4000);return}
+    delete q('#aiMin').dataset.arm;q('#aiMin').textContent='✦ تهیه صورت جلسه';
+    q('#aiMin').disabled=true;mstat.className='stat';mstat.textContent='Claude در حال نوشتن صورت جلسه است…';
+    try{const t=await callClaude(st.m,getStrokes());apply(parseMinutes(t))}catch(e){mstat.className='stat err';mstat.textContent=e.message}
+    q('#aiMin').disabled=false};
+  q('#cpPrompt').onclick=async()=>{const t=minutesPrompt(st.m,false);
+    try{await navigator.clipboard.writeText(t);toast('کپی شد — در Claude بچسبانید')}catch(e){toast('کپی نشد')}
+    q('#pasteBox').hidden=false};
+  q('#pasteNo').onclick=()=>{q('#pasteBox').hidden=true};
+  q('#pasteOk').onclick=()=>{try{apply(parseMinutes(q('#pasteIn').value));q('#pasteIn').value='';q('#pasteBox').hidden=true}catch(e){mstat.className='stat err';mstat.textContent='پاسخ قابل خواندن نبود — کل پاسخ Claude را کپی کنید'}};
+  q('#shareMin').onclick=async()=>{const t=q('#mMin').value.trim();if(!t){toast('هنوز صورت جلسه‌ای نوشته نشده');return}
+    try{if(navigator.share){await navigator.share({title:'صورت جلسه '+(st.m.title||''),text:t});return}}catch(e){if(e.name==='AbortError')return}
+    try{await navigator.clipboard.writeText(t);toast('صورت جلسه کپی شد')}catch(e){toast('کپی نشد')}};
+
+  /* follow-up actions */
+  function renderActs(){const box=q('#actList');if(!box)return;const acts=st.m.actions||[];
+    box.innerHTML=acts.length?acts.map((a,i)=>`<div class="act" data-i="${i}">
+      <span class="tnum">${fa(i+1)}</span>
+      <input data-k="task" value="${esc(a.task)}" placeholder="اقدام">
+      <input class="ow" data-k="owner" value="${esc(a.owner)}" placeholder="مسئول" list="pList">
+      <input class="du" data-k="due" type="date" value="${a.due||''}">
+      ${a.taskId&&S.items.get(a.taskId)?`<button class="icon" data-open="${i}">✓ در کارها</button>`:`<button class="icon primary" data-send="${i}">به کارها</button>`}
+      <button class="x" data-rm="${i}" aria-label="حذف">✕</button>
+      <span class="jl">${a.due?'مهلت: '+faDate(fromIso(a.due)):'مهلت تعیین نشده — اگر خالی بماند، روز بعد از جلسه ثبت می‌شود'}</span></div>`).join(''):'<div class="hint">موردی برای پیگیری ثبت نشده. پس از تهیه صورت جلسه، موارد پیگیری اینجا می‌آیند؛ یا با «+ مورد» دستی اضافه کنید.</div>';
+    box.querySelectorAll('input[data-k]').forEach(inp=>{const i=+inp.closest('.act').dataset.i;
+      inp.onchange=()=>{const a=st.m.actions[i];a[inp.dataset.k]=inp.value;
+        if(a.taskId&&S.items.get(a.taskId)){const t=S.items.get(a.taskId);put({...t,text:actText(a),date:a.due||t.date})}
+        commit();if(inp.dataset.k==='due')renderActs()}});
+    box.querySelectorAll('[data-send]').forEach(b=>b.onclick=()=>{sendAct(+b.dataset.send);renderActs();toast('به کارهای '+faShort(fromIso(st.m.actions[+b.dataset.send].due||iso(fromIso(st.m.date)+1)))+' اضافه شد')});
+    box.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{const a=st.m.actions[+b.dataset.open];toast('در کارهای '+faShort(fromIso(S.items.get(a.taskId).date)))});
+    box.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{if(!b.dataset.arm){b.dataset.arm=1;b.textContent='حذف؟';b.classList.add('arm');return}
+      const a=st.m.actions[+b.dataset.rm];if(a.taskId)del(a.taskId);st.m.actions.splice(+b.dataset.rm,1);commit();renderActs()});
+  }
+  st.renderActs=renderActs;
+  const actText=(a)=>a.task+(a.owner?' — مسئول: '+a.owner:'');
+  function sendAct(i){const a=st.m.actions[i];if(!a.task.trim())return;if(a.taskId&&S.items.get(a.taskId))return;
+    const t={kind:'task',id:'t_'+uid(),date:a.due||iso(fromIso(st.m.date)+1),text:actText(a),done:false,at:Date.now()+i,fromMeeting:st.m.id,fromMeetingTitle:st.m.title,fromDate:st.m.date};
+    put(t);a.taskId=t.id;commit()}
+  q('#actAdd').onclick=()=>{(st.m.actions=st.m.actions||[]).push({id:uid(),task:'',owner:'',due:''});commit();renderActs();const ins=sh.querySelectorAll('.act input[data-k="task"]');ins[ins.length-1]?.focus()};
+  q('#actAll').onclick=()=>{const acts=st.m.actions||[];let n=0;acts.forEach((a,i)=>{if(a.task.trim()&&!(a.taskId&&S.items.get(a.taskId))){sendAct(i);n++}});renderActs();toast(n?fa(n)+' مورد به کارها اضافه شد':'همه موارد قبلاً به کارها اضافه شده‌اند')};
 }
 
 /* ---------- top bar wiring ---------- */
@@ -580,6 +852,7 @@ $('#main').addEventListener('click',e=>{const b=e.target.closest('.day');if(b)op
 $('#menuBtn').onclick=e=>{e.stopPropagation();$('#menu').hidden=!$('#menu').hidden};
 document.addEventListener('click',e=>{if(!e.target.closest('.rel'))$('#menu').hidden=true});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!ED&&ui.sel!=null)closeDay()});
+$('#aiSetM').onclick=()=>{$('#menu').hidden=true;openAISettings()};
 $('#exp').onclick=async()=>{$('#menu').hidden=true;
   const all=[...S.items.values()];
   for(const m of all.filter(o=>o.kind==='meeting'&&o.inkN)){const s=await loadInk(m.id);all.push({kind:'ink',id:'i_'+m.id+'_0',mid:m.id,k:0,s:JSON.stringify(s)})}
